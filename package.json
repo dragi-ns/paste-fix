@@ -2,7 +2,10 @@
   "name": "paste-fix",
   "displayName": "Paste Fix",
   "description": "Primarily made to remove irregular whitespace characters, which we get when we copy and paste content from OneNote.",
-  "version": "0.0.1",
+  "repository": "https://github.com/dragi-ns/paste-fix",
+  "publisher": "dragi-ns",
+  "icon": "images/paste-fix-icon.png",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.71.0"
   },
