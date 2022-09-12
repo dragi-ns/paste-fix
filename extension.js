@@ -31,25 +31,33 @@ const IRREGULAR_WHITESPACES = [
 ];
 
 function activate(context) {
-  // TODO: Add a command so that the user can run this on demand,
-  // instead running only when pasting content.
+  console.log('Extension "paste-fix" is now active!');
+
+  // TODO: Add a command so that the user can run this on demand, instead of running only when pasting content.
+
+  const irregularWhitespacesRegex = new RegExp(
+    `[${IRREGULAR_WHITESPACES.join("")}]`,
+    "g"
+  );
+
   context.subscriptions.push(
     vscode.workspace.onDidChangeTextDocument(async (changeEvent) => {
       const clipboardText = await vscode.env.clipboard.readText();
+
       changeEvent.contentChanges.forEach((contentChange) => {
         if (
           contentChange.text.length >= 1 &&
-          contentChange.text === clipboardText
+          contentChange.text === clipboardText &&
+          contentChange.text.match(irregularWhitespacesRegex)
         ) {
+          console.log("Detected irregular whitespaces! Replacing...");
+
           const { document } = changeEvent;
-          // TODO: Instead of replacing all text from the document,
-          // replace only the pasted (changed) part.
+
+          // TODO: Instead of replacing all text from the document, replace only the pasted (changed) part.
           let newText = document
             .getText()
-            .replace(
-              new RegExp(`[${IRREGULAR_WHITESPACES.join("")}]`, "g"),
-              " "
-            );
+            .replace(irregularWhitespacesRegex, " ");
           if (!newText) {
             return;
           }
