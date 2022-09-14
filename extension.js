@@ -1,8 +1,6 @@
 const vscode = require("vscode");
-const { writeFile } = require("fs");
 
 // https://eslint.org/docs/latest/rules/no-irregular-whitespace#rule-details
-// TODO: Extract this into its own module
 const IRREGULAR_WHITESPACES = [
   "\u000B", // Line Tabulation (\v) - <VT>
   "\u000C", // Form Feed (\f) - <FF>
@@ -30,60 +28,60 @@ const IRREGULAR_WHITESPACES = [
   "\u3000", // Ideographic Space
 ];
 
+function replaceIrregularWhitespaces(text, regex) {
+  return text.replace(regex, " ");
+}
+
+async function handleActiveTextDocumentChange(changeEvent, regex) {
+  const clipboardText = await vscode.env.clipboard.readText();
+
+  changeEvent.contentChanges.forEach((contentChange) => {
+    const { document } = changeEvent;
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || editor.document !== document) {
+      // Ignore change if a text document changes but is not in a currently active editor
+      return;
+    }
+
+    if (
+      contentChange.text.length >= 1 &&
+      contentChange.text === clipboardText &&
+      contentChange.text.match(regex)
+    ) {
+      console.log("Detected irregular whitespaces! Replacing...");
+
+      // TODO: Instead of replacing all text from the document, replace only the pasted (changed) part.
+      const newText = replaceIrregularWhitespaces(document.getText(), regex);
+      if (!newText) {
+        return;
+      }
+
+      // https://stackoverflow.com/questions/45203543/vs-code-extension-api-to-get-the-range-of-the-whole-text-of-a-document
+      const firstLine = editor.document.lineAt(0);
+      const lastLine = editor.document.lineAt(editor.document.lineCount - 1);
+      const textRange = new vscode.Range(
+        firstLine.range.start,
+        lastLine.range.end
+      );
+      return editor.edit((editBuilder) =>
+        editBuilder.replace(textRange, newText)
+      );
+    }
+  });
+}
+
 function activate(context) {
   console.log('Extension "paste-fix" is now active!');
-
-  // TODO: Add a command so that the user can run this on demand, instead of running only when pasting content.
-
   const irregularWhitespacesRegex = new RegExp(
     `[${IRREGULAR_WHITESPACES.join("")}]`,
     "g"
   );
 
+  // TODO: Add a command so that the user can run this on demand, instead of running only when pasting content.
   context.subscriptions.push(
-    vscode.workspace.onDidChangeTextDocument(async (changeEvent) => {
-      const clipboardText = await vscode.env.clipboard.readText();
-
-      changeEvent.contentChanges.forEach((contentChange) => {
-        if (
-          contentChange.text.length >= 1 &&
-          contentChange.text === clipboardText &&
-          contentChange.text.match(irregularWhitespacesRegex)
-        ) {
-          console.log("Detected irregular whitespaces! Replacing...");
-
-          const { document } = changeEvent;
-
-          // TODO: Instead of replacing all text from the document, replace only the pasted (changed) part.
-          let newText = document
-            .getText()
-            .replace(irregularWhitespacesRegex, " ");
-          if (!newText) {
-            return;
-          }
-
-          let editor = vscode.window.visibleTextEditors.find(
-            (editor) => editor.document === document
-          );
-          if (editor) {
-            // https://stackoverflow.com/questions/45203543/vs-code-extension-api-to-get-the-range-of-the-whole-text-of-a-document
-            const firstLine = editor.document.lineAt(0);
-            const lastLine = editor.document.lineAt(
-              editor.document.lineCount - 1
-            );
-            const textRange = new vscode.Range(
-              firstLine.range.start,
-              lastLine.range.end
-            );
-            return editor.edit((editBuilder) =>
-              editBuilder.replace(textRange, newText)
-            );
-          }
-
-          writeFile(document.uri.fsPath, newText);
-        }
-      });
-    })
+    vscode.workspace.onDidChangeTextDocument((changeEvent) =>
+      handleActiveTextDocumentChange(changeEvent, irregularWhitespacesRegex)
+    )
   );
 }
 
