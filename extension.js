@@ -73,11 +73,36 @@ async function handleActiveTextDocumentChange(changeEvent, regex) {
         lastLine.range.end
       );
       const validatedTextRange = document.validateRange(textRange);
-      editor.edit((editorBuilder) =>
-        editorBuilder.replace(validatedTextRange, newText)
+      editor.edit((editBuilder) =>
+        editBuilder.replace(validatedTextRange, newText)
       );
     }
   });
+}
+
+async function handleReplaceInFileCommand(regex) {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    return vscode.window.showErrorMessage(
+      "No active editor found! Open a text document and run the command again."
+    );
+  }
+
+  const { document } = editor;
+
+  const newText = replaceIrregularWhitespaces(document.getText(), regex);
+  if (!newText) {
+    return;
+  }
+
+  // https://stackoverflow.com/a/46427868
+  const firstLine = document.lineAt(0);
+  const lastLine = document.lineAt(document.lineCount - 1);
+  const textRange = new vscode.Range(firstLine.range.start, lastLine.range.end);
+  await editor.edit((editBuilder) => editBuilder.replace(textRange, newText));
+  vscode.window.showInformationMessage(
+    `Replaced irregular whitespaces in ${document.fileName}`
+  );
 }
 
 function activate(context) {
@@ -87,8 +112,13 @@ function activate(context) {
     "g"
   );
 
-  // TODO: Add a command so that the user can run this on demand, instead of running only when pasting content.
+  const disposable = vscode.commands.registerCommand(
+    "extension.replaceIrregularWhitespaces",
+    () => handleReplaceInFileCommand(irregularWhitespacesRegex)
+  );
+
   context.subscriptions.push(
+    disposable,
     vscode.workspace.onDidChangeTextDocument((changeEvent) =>
       handleActiveTextDocumentChange(changeEvent, irregularWhitespacesRegex)
     )

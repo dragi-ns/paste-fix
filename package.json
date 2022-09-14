@@ -13,11 +13,17 @@
     "Other"
   ],
   "activationEvents": [
-    "*"
+    "*",
+    "onCommand:extension.replaceIrregularWhitespaces"
   ],
   "main": "./extension.js",
   "contributes": {
-    "commands": []
+    "commands": [
+      {
+        "command": "extension.replaceIrregularWhitespaces",
+        "title": "Paste Fix: Replace Irregular Whitespaces"
+      }
+    ]
   },
   "scripts": {
     "lint": "eslint .",
