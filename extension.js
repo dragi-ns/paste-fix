@@ -107,6 +107,7 @@ async function handleReplaceInFileCommand(regex) {
 
 function activate(context) {
   console.log('Extension "paste-fix" is now active!');
+
   const irregularWhitespacesRegex = new RegExp(
     `[${IRREGULAR_WHITESPACES.join("")}]`,
     "g"
@@ -116,12 +117,26 @@ function activate(context) {
     "extension.replaceIrregularWhitespaces",
     () => handleReplaceInFileCommand(irregularWhitespacesRegex)
   );
+  context.subscriptions.push(disposable);
 
+  const replaceOnPaste = vscode.workspace
+    .getConfiguration("paste-fix")
+    .get("replaceOnPaste");
+  if (replaceOnPaste) {
+    context.subscriptions.push(
+      vscode.workspace.onDidChangeTextDocument((changeEvent) =>
+        handleActiveTextDocumentChange(changeEvent, irregularWhitespacesRegex)
+      )
+    );
+  }
+
+  // TODO: When the user changes configuration, try to change behavior without asking for the restart.
   context.subscriptions.push(
-    disposable,
-    vscode.workspace.onDidChangeTextDocument((changeEvent) =>
-      handleActiveTextDocumentChange(changeEvent, irregularWhitespacesRegex)
-    )
+    vscode.workspace.onDidChangeConfiguration(() => {
+      vscode.window.showInformationMessage(
+        `Please restart your Visual Studio Code to see changes.`
+      );
+    })
   );
 }
 

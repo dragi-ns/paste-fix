@@ -18,6 +18,16 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "configuration": {
+      "title": "Paste Fix",
+      "properties": {
+        "paste-fix.replaceOnPaste": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Replaces irregular whitespaces from pasted content."
+        }
+      }
+    },
     "commands": [
       {
         "command": "extension.replaceIrregularWhitespaces",
