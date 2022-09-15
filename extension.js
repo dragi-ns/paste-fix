@@ -40,13 +40,21 @@ function fixIndentation(text, indentationAmount) {
 }
 
 async function handleActiveTextDocumentChange(changeEvent, regex) {
+  const replaceOnPaste = vscode.workspace
+    .getConfiguration("paste-fix")
+    .get("replaceOnPaste");
+  if (!replaceOnPaste) {
+    // Do nothing if the user opt out from replace on paste
+    return;
+  }
+
   const clipboardText = await vscode.env.clipboard.readText();
 
   changeEvent.contentChanges.forEach((contentChange) => {
     const { document } = changeEvent;
     const editor = vscode.window.activeTextEditor;
     if (!editor || editor.document !== document) {
-      // Ignore change if a text document changes but is not in a currently active editor
+      // Do nothing if a text document changes but is not in a currently active editor
       return;
     }
 
@@ -117,26 +125,12 @@ function activate(context) {
     "extension.replaceIrregularWhitespaces",
     () => handleReplaceInFileCommand(irregularWhitespacesRegex)
   );
-  context.subscriptions.push(disposable);
 
-  const replaceOnPaste = vscode.workspace
-    .getConfiguration("paste-fix")
-    .get("replaceOnPaste");
-  if (replaceOnPaste) {
-    context.subscriptions.push(
-      vscode.workspace.onDidChangeTextDocument((changeEvent) =>
-        handleActiveTextDocumentChange(changeEvent, irregularWhitespacesRegex)
-      )
-    );
-  }
-
-  // TODO: When the user changes configuration, try to change behavior without asking for the restart.
   context.subscriptions.push(
-    vscode.workspace.onDidChangeConfiguration(() => {
-      vscode.window.showInformationMessage(
-        `Please restart your Visual Studio Code to see changes.`
-      );
-    })
+    disposable,
+    vscode.workspace.onDidChangeTextDocument((changeEvent) =>
+      handleActiveTextDocumentChange(changeEvent, irregularWhitespacesRegex)
+    )
   );
 }
 
